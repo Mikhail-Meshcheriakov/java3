@@ -1,18 +1,17 @@
 package lesson1;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Box<T extends Fruit> {
     private ArrayList<T> fruitsInBox = new ArrayList<>();
 
     public Box(T... fruits) {
-        for (T fruit : fruits) {
-            this.add(fruit);
-        }
+        this.fruitsInBox.addAll(Arrays.asList(fruits));
     }
 
     public Box(ArrayList<T> fruits) {
-        fruitsInBox = fruits;
+        this.fruitsInBox = fruits;
     }
 
     public float getWeight() {
@@ -24,17 +23,21 @@ public class Box<T extends Fruit> {
     }
 
     public void add(T fruits) {
-        fruitsInBox.add(fruits);
+        this.fruitsInBox.add(fruits);
     }
 
     public void moveToAnotherBox(Box<T> box) {
-        for (T fruit : fruitsInBox) {
-            box.add(fruit);
+        if (box.fruitsInBox.isEmpty()) {
+            return;
         }
+        if (box.equals(this)) {
+            return;
+        }
+        box.fruitsInBox.addAll(this.fruitsInBox);
         fruitsInBox.clear();
     }
 
     public boolean compare(Box<?> box) {
-        return this.getWeight() == box.getWeight();
+        return Math.abs(this.getWeight() - box.getWeight()) < 0.0001;
     }
 }
