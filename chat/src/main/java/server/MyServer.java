@@ -10,7 +10,6 @@ public class MyServer {
     private final int PORT = 8189;
 
     private Map<String, ClientHandler> clients;
-    //    private List<ClientHandler> clients;
     private AuthService authService;
 
     public AuthService getAuthService() {
@@ -30,6 +29,7 @@ public class MyServer {
                 new ClientHandler(this, socket);
             }
         } catch (IOException e) {
+            e.printStackTrace();
             System.out.println("Ошибка в работе сервера");
         } finally {
             if (authService != null) {
@@ -57,26 +57,6 @@ public class MyServer {
             clients.get(to).sendMsg(formatMessage(from, msg));
         }
     }
-
-
-    //Отправка персонального сообщения
-//    public synchronized void privateMsg(String msg, String nick) {
-//        for (ClientHandler o : clients) {
-//            if (o.getName().equals(nick)) {
-//                o.sendMsg(msg);
-//                break;
-//            }
-//        }
-//    }
-
-    //Отправка списка пользователей
-//    public synchronized void broadcastUserList() {
-//        StringBuilder msg = new StringBuilder("/clients ");
-//        for (ClientHandler o : clients) {
-//            msg.append(o.getName()).append(" ");
-//        }
-//        broadcastMsg(msg.toString());
-//    }
 
     public synchronized void unsubscribe(ClientHandler o) {
         clients.remove(o.getName());

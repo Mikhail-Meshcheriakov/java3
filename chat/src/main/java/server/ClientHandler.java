@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -88,6 +89,20 @@ public class ClientHandler {
                 String nick = tokens[1];
                 String msg = strFromClient.substring(4 + nick.length());
                 myServer.sendMsgToClient(name, nick, msg);
+            } else if (strFromClient.startsWith("/cn")) {
+                String nickNew = strFromClient.substring(4);
+                try {
+                    if (myServer.getAuthService().changeNick(name, nickNew)) {
+                        myServer.broadcastMsg(name, "Пользователь " + name + " сменил ник на: " + nickNew);
+                        myServer.unsubscribe(this);
+                        name = nickNew;
+                        myServer.subscribe(this);
+                    } else {
+                        myServer.sendMsgToClient(name, name, "Этот ник занят");
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             } else {
                 myServer.broadcastMsg(name, strFromClient);
             }
