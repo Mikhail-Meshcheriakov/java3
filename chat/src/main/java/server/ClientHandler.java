@@ -107,6 +107,7 @@ public class ClientHandler {
                         myServer.broadcastMsg(name, "Пользователь " + name + " сменил ник на: " + nickNew);
                         myServer.unsubscribe(this);
                         name = nickNew;
+                        sendMsg("/changenick " + nickNew);
                         myServer.subscribe(this);
                     } else {
                         myServer.sendMsgToClient(name, name, "Этот ник занят");

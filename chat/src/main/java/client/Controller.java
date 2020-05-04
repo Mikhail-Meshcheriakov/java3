@@ -7,7 +7,10 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 
+import java.io.*;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -30,6 +33,7 @@ public class Controller implements Initializable {
 
     private boolean authenticated;
     private String nickname;
+    private String login;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -54,6 +58,7 @@ public class Controller implements Initializable {
 
     public void sendAuth() {
         network.sendAuth(loginField.getText(), passField.getText());
+        login = loginField.getText();
         loginField.clear();
         passField.clear();
     }
@@ -85,6 +90,27 @@ public class Controller implements Initializable {
         network.setCallOnAuthenticated(args -> {
             setAuthenticated(true);
             nickname = args[0].toString();
+            String line;
+            List<String> list = new ArrayList<>();
+            textArea.clear();
+            try (RandomAccessFile raf = new RandomAccessFile("history_" + login + ".txt", "r")) {
+                while (true) {
+                    line = raf.readLine();
+                    if (line == null) break;
+                    if (list.size() >= 100) {
+                        list.remove(0);
+                    }
+                    String utf8 = new String(line.getBytes("ISO-8859-1"), "UTF-8");
+                    list.add(utf8);
+                }
+                for (int i = 0; i < list.size(); i++) {
+                    textArea.appendText(list.get(i) + "\n");
+                }
+            } catch(FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         });
 
         network.setCallOnMsgReceived(args -> {
@@ -99,8 +125,18 @@ public class Controller implements Initializable {
                         }
                     }
                 });
+            } else if (msg.startsWith("/changenick ")) {
+                nickname = msg.split("\\s")[1];
             } else {
                 textArea.appendText(msg + "\n");
+                try (RandomAccessFile raf = new RandomAccessFile("history_" + login + ".txt", "rw")) {
+                    raf.seek(raf.length());
+                    raf.writeUTF(msg + "\n");
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
