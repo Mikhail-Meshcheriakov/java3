@@ -53,10 +53,20 @@ public class ClientHandler {
             Timer timer = new Timer();
             timer.schedule(timerTask, 120000);
             String str = in.readUTF();
+            String nick = null;
             timer.cancel();
             if (str.startsWith("/auth")) {
                 String[] parts = str.split("\\s");
-                String nick = myServer.getAuthService().getNickByLoginPass(parts[1], parts[2]);
+                try {
+                    myServer.getAuthService().connectDB();
+                    nick = myServer.getAuthService().getNickByLoginPass(parts[1], parts[2]);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                } finally {
+                    myServer.getAuthService().disconnectDB();
+                }
                 if (nick != null) {
                     if (!myServer.isNickBusy(nick)) {
                         sendMsg("/authok " + nick);
@@ -92,6 +102,7 @@ public class ClientHandler {
             } else if (strFromClient.startsWith("/cn")) {
                 String nickNew = strFromClient.substring(4);
                 try {
+                    myServer.getAuthService().connectDB();
                     if (myServer.getAuthService().changeNick(name, nickNew)) {
                         myServer.broadcastMsg(name, "Пользователь " + name + " сменил ник на: " + nickNew);
                         myServer.unsubscribe(this);
@@ -102,6 +113,10 @@ public class ClientHandler {
                     }
                 } catch (SQLException e) {
                     e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                } finally {
+                    myServer.getAuthService().disconnectDB();
                 }
             } else {
                 myServer.broadcastMsg(name, strFromClient);
