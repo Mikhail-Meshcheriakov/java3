@@ -5,9 +5,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MyServer {
-    private final int PORT = 8189;
+    private static final int PORT = 8189;
 
     private Map<String, ClientHandler> clients;
     private AuthService authService;
@@ -17,6 +19,7 @@ public class MyServer {
     }
 
     public MyServer() {
+        ExecutorService executorService = Executors.newCachedThreadPool();
         try (ServerSocket server = new ServerSocket(PORT)) {
             authService = new BaseAuthService();
             authService.start();
@@ -26,12 +29,13 @@ public class MyServer {
                 System.out.println("Сервер ожидает подключения");
                 Socket socket = server.accept();
                 System.out.println("Клиент подключился");
-                new ClientHandler(this, socket);
+                executorService.execute(() -> new ClientHandler(this, socket));
             }
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Ошибка в работе сервера");
         } finally {
+            executorService.shutdown();
             if (authService != null) {
                 authService.stop();
             }
