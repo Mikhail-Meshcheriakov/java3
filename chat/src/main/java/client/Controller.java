@@ -15,19 +15,19 @@ import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
     @FXML
-    TextArea textArea;
+    private TextArea textArea;
 
     @FXML
-    TextField msgField, loginField;
+    private TextField msgField, loginField;
 
     @FXML
-    HBox msgPanel, authPanel;
+    private HBox msgPanel, authPanel;
 
     @FXML
-    PasswordField passField;
+    private PasswordField passField;
 
     @FXML
-    ListView<String> clientsList;
+    private ListView<String> clientsList;
 
     private Network network;
 
@@ -56,14 +56,16 @@ public class Controller implements Initializable {
         network.connect();
     }
 
-    public void sendAuth() {
+    @FXML
+    private void sendAuth() {
         network.sendAuth(loginField.getText(), passField.getText());
         login = loginField.getText();
         loginField.clear();
         passField.clear();
     }
 
-    public void sendMsg() {
+    @FXML
+    private void sendMsg() {
         if (network.sendMsg(msgField.getText())) {
             msgField.clear();
             msgField.requestFocus();

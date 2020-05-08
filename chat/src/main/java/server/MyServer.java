@@ -29,7 +29,7 @@ public class MyServer {
                 System.out.println("Сервер ожидает подключения");
                 Socket socket = server.accept();
                 System.out.println("Клиент подключился");
-                executorService.execute(() -> new ClientHandler(this, socket));
+                executorService.execute(new ClientHandler(this, socket));
             }
         } catch (IOException e) {
             e.printStackTrace();

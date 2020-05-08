@@ -1,14 +1,12 @@
 package server;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class ClientHandler {
+public class ClientHandler implements Runnable{
     private MyServer myServer;
     private Socket socket;
     private DataInputStream in;
@@ -20,6 +18,18 @@ public class ClientHandler {
         return name;
     }
 
+    @Override
+    public void run() {
+        try {
+            authentication();
+            readMessages();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            closeConnection();
+        }
+    }
+
     public ClientHandler(MyServer myServer, Socket socket) {
         try {
             this.myServer = myServer;
@@ -27,14 +37,6 @@ public class ClientHandler {
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
             this.name = "";
-            try {
-                authentication();
-                readMessages();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                closeConnection();
-            }
         } catch (IOException e) {
             throw new RuntimeException("Проблемы при создании обработчика клиента");
         }
