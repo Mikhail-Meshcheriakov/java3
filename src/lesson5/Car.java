@@ -1,7 +1,11 @@
 package lesson5;
 
+import java.util.concurrent.BrokenBarrierException;
+
 public class Car implements Runnable {
     private static int CARS_COUNT;
+    private static int CARS_PLACE;
+
     private Race race;
     private int speed;
     private String name;
@@ -21,13 +25,38 @@ public class Car implements Runnable {
     public void run() {
         try {
             System.out.println(this.name + " готовится");
-            Thread.sleep(500 + (int)(Math.random() * 800));
+            Thread.sleep((long) (500 + Math.random() * 800));
+            MainClass.cb.await();
             System.out.println(this.name + " готов");
-        } catch (Exception e) {
+            MainClass.cdl1.countDown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (BrokenBarrierException e) {
             e.printStackTrace();
         }
+
+        MainClass.lock.lock();
+        MainClass.lock.unlock();
+
         for (int i = 0; i < race.getStages().size(); i++) {
             race.getStages().get(i).go(this);
+        }
+        try {
+            MainClass.semaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        finished();
+        MainClass.semaphore.release();
+        MainClass.cdl2.countDown();
+    }
+
+    private void finished() {
+        CARS_PLACE++;
+        if (CARS_PLACE == 1) {
+            System.out.println(getName() + " - WIN");
+        } else {
+            System.out.println(getName() + " занял " + CARS_PLACE + " место");
         }
     }
 }
