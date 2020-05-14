@@ -1,5 +1,8 @@
 package server;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.net.Socket;
 import java.sql.SQLException;
@@ -11,6 +14,7 @@ public class ClientHandler implements Runnable{
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
+    private static final Logger LOGGER = LogManager.getLogger(ClientHandler.class);
 
     private String name;
 
@@ -24,9 +28,10 @@ public class ClientHandler implements Runnable{
             authentication();
             readMessages();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
         } finally {
             closeConnection();
+            LOGGER.info("Клиент {} отключился.", socket.getRemoteSocketAddress());
         }
     }
 
@@ -37,8 +42,9 @@ public class ClientHandler implements Runnable{
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
             this.name = "";
+            LOGGER.info("Клиент {} подключился.", socket.getRemoteSocketAddress());
         } catch (IOException e) {
-            throw new RuntimeException("Проблемы при создании обработчика клиента");
+            LOGGER.error("Проблемы при создании обработчика клиента.", e);
         }
     }
 
@@ -48,11 +54,16 @@ public class ClientHandler implements Runnable{
                 @Override
                 public void run() {
                     closeConnection();
+                    LOGGER.info("Отключение клиента {} по таймауту.", socket.getRemoteSocketAddress());
                 }
             };
             Timer timer = new Timer();
             timer.schedule(timerTask, 120000);
             String str = in.readUTF();
+            if (str.equals("/end")) {
+                Thread.currentThread().interrupt();
+                return;
+            }
             String nick = null;
             timer.cancel();
             if (str.startsWith("/auth")) {
@@ -60,10 +71,9 @@ public class ClientHandler implements Runnable{
                 try {
                     myServer.getAuthService().connectDB();
                     nick = myServer.getAuthService().getNickByLoginPass(parts[1], parts[2]);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                } catch (SQLException throwables) {
-                    throwables.printStackTrace();
+                } catch (ClassNotFoundException | SQLException e) {
+                    LOGGER.error(e.getMessage(), e);
+//                    e.printStackTrace();
                 } finally {
                     myServer.getAuthService().disconnectDB();
                 }
@@ -73,11 +83,14 @@ public class ClientHandler implements Runnable{
                         name = nick;
                         myServer.broadcastMsg(name + " зашел в чат");
                         myServer.subscribe(this);
+                        LOGGER.info("Пользователь {} успешно авторизовался на клиенте {}", name, socket.getRemoteSocketAddress());
                         return;
                     } else {
+                        LOGGER.info("Неудачная попытка авторизации на клиенте {}. Учетная запись уже используется.", socket.getRemoteSocketAddress());
                         sendMsg("Учетная запись уже используется");
                     }
                 } else {
+                    LOGGER.info("Неудачная попытка авторизации на клиенте {}. Неверные логин/пароль.", socket.getRemoteSocketAddress());
                     sendMsg("Неверные логин/пароль");
                 }
             }
@@ -85,7 +98,7 @@ public class ClientHandler implements Runnable{
     }
 
     public void readMessages() throws IOException {
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             String strFromClient = in.readUTF();
             System.out.println("от " + name + ": " + strFromClient);
             if (strFromClient.equals("/end")) {
@@ -99,27 +112,31 @@ public class ClientHandler implements Runnable{
                 String nick = tokens[1];
                 String msg = strFromClient.substring(4 + nick.length());
                 myServer.sendMsgToClient(name, nick, msg);
+                LOGGER.info("Пользователь {} отправил личное сообщение пользователю {}", name, nick);
             } else if (strFromClient.startsWith("/cn")) {
                 String nickNew = strFromClient.substring(4);
                 try {
                     myServer.getAuthService().connectDB();
                     if (myServer.getAuthService().changeNick(name, nickNew)) {
                         myServer.broadcastMsg(name, "Пользователь " + name + " сменил ник на: " + nickNew);
+                        LOGGER.info("Пользователь {} сменил ник на {}.", name, nickNew);
                         myServer.unsubscribe(this);
                         name = nickNew;
                         sendMsg("/changenick " + nickNew);
                         myServer.subscribe(this);
                     } else {
+                        LOGGER.info("Неудачная попытка смены ника {} на {} (ник занят).", name, nickNew);
                         myServer.sendMsgToClient(name, name, "Этот ник занят");
                     }
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    LOGGER.error(e.getMessage(), e);
                 } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                    LOGGER.error(e.getMessage(), e);
                 } finally {
                     myServer.getAuthService().disconnectDB();
                 }
             } else {
+                LOGGER.info("Пользователь {} отправил многоадресное сообщение.", name);
                 myServer.broadcastMsg(name, strFromClient);
             }
         }
@@ -129,7 +146,7 @@ public class ClientHandler implements Runnable{
         try {
             out.writeUTF(msg);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
         }
     }
 
@@ -137,17 +154,17 @@ public class ClientHandler implements Runnable{
         try {
             in.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
         }
         try {
             out.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
         }
         try {
             socket.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
         }
     }
 }

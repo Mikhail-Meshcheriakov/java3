@@ -58,8 +58,11 @@ public class Controller implements Initializable {
 
     @FXML
     private void sendAuth() {
+        String login = loginField.getText();
+        String password = passField.getText();
+        if (login.equals("") || password.equals("")) return;
         network.sendAuth(loginField.getText(), passField.getText());
-        login = loginField.getText();
+        this.login = loginField.getText();
         loginField.clear();
         passField.clear();
     }
@@ -108,8 +111,6 @@ public class Controller implements Initializable {
                 for (int i = 0; i < list.size(); i++) {
                     textArea.appendText(list.get(i) + "\n");
                 }
-            } catch(FileNotFoundException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }

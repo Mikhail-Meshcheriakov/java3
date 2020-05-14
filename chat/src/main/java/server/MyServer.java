@@ -1,5 +1,8 @@
 package server;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -13,6 +16,7 @@ public class MyServer {
 
     private Map<String, ClientHandler> clients;
     private AuthService authService;
+    private static final Logger LOGGER = LogManager.getLogger(MyServer.class);
 
     public AuthService getAuthService() {
         return authService;
@@ -26,14 +30,12 @@ public class MyServer {
             clients = new HashMap<>();
 
             while (true) {
-                System.out.println("Сервер ожидает подключения");
+                LOGGER.info("Сервер ожидает подключения");
                 Socket socket = server.accept();
-                System.out.println("Клиент подключился");
                 executorService.execute(new ClientHandler(this, socket));
             }
         } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Ошибка в работе сервера");
+            LOGGER.error("Ошибка в работе сервера", e);
         } finally {
             executorService.shutdown();
             if (authService != null) {

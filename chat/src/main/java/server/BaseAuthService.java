@@ -1,5 +1,8 @@
 package server;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.sql.*;
 
 public class BaseAuthService implements AuthService {
@@ -8,21 +11,23 @@ public class BaseAuthService implements AuthService {
     private Connection connection;
     private PreparedStatement psChangeNick;
     private PreparedStatement psGetNickByLoginPass;
+    private static final Logger LOGGER = LogManager.getLogger(BaseAuthService.class);
 
     @Override
     public void start() {
-        System.out.println("Сервис аутентификации запущен");
+        LOGGER.info("Сервис аутентификации запущен");
     }
 
     @Override
     public void stop() {
-        System.out.println("Сервис аутентификации остановлен");
+        LOGGER.info("Сервис аутентификации остановлен");
     }
 
     @Override
     public void connectDB() throws ClassNotFoundException, SQLException {
         Class.forName(JDBC_DRIVER);
         connection = DriverManager.getConnection(DATABASE_URL);
+        LOGGER.info("Соединение с БД установлено.");
         psChangeNick = connection.prepareStatement("UPDATE users SET nick = ? WHERE nick = ? AND NOT EXISTS (SELECT 1 FROM users WHERE nick = ?)");
         psGetNickByLoginPass = connection.prepareStatement("SELECT nick FROM users WHERE login = ? AND password = ?");
     }
@@ -42,23 +47,24 @@ public class BaseAuthService implements AuthService {
             try {
                 psChangeNick.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                LOGGER.error(e.getMessage(), e);
             }
         }
         if (psGetNickByLoginPass != null) {
             try {
                 psGetNickByLoginPass.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                LOGGER.error(e.getMessage(), e);
             }
         }
         if (connection != null) {
             try {
                 connection.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                LOGGER.error(e.getMessage(), e);
             }
         }
+        LOGGER.info("Соединение с БД завершено.");
     }
 
     @Override
@@ -71,7 +77,7 @@ public class BaseAuthService implements AuthService {
                 return resultSet.getString(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
         }
         return null;
     }
